@@ -20,6 +20,14 @@ import com.flurgle.camerakit.CameraView;
 import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
+    static {
+        try {
+            System.loadLibrary("colorspace_conversion");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private static final String TAG = MainActivity.class.getSimpleName();
     private CameraView mCameraPreview;
 
@@ -29,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
 
-        mCameraPreview = (CameraView)findViewById(R.id.camera_preview);
+        mCameraPreview = (CameraView) findViewById(R.id.camera_preview);
         mCameraPreview.setCameraListener(new CameraListener() {
             @Override
             public void onCameraOpened() {
