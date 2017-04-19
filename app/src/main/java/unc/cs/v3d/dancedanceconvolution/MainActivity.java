@@ -56,7 +56,11 @@ public class MainActivity extends AppCompatActivity {
                 Bitmap bitmap = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.length);
                 bitmap = Bitmap.createScaledBitmap(bitmap, 224, 224, false);
 
-                // TODO: fire-up tensorflow inference
+                // Convolutional Pose Machines (CPM) have two stages: 1) PersonNetwork 2) PoseNet
+                // TODO: (fswangke) fire-up PersonNetwork
+                // TODO: (fswangke) convert PersonNet output to PoseNet input via C++ library
+                // TODO: (fswangke) fire-up PoseNetwork
+                // TODO: (fswangke) render the pose back to the image to visualize the Pose
             }
 
             @Override
