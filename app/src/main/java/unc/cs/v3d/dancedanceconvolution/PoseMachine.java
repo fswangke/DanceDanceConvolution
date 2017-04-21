@@ -34,11 +34,10 @@ public class PoseMachine {
 
     // Singleton pattern
     public static PoseMachine getPoseMachine(AssetManager assetManager, String modelFilename,
-                                             int inputWidth, int inputHeight,
-                                             String inputName, String outputName) {
+                                             int inputSize, String inputName, String[] outputNames) {
         PoseMachine pm = new PoseMachine();
         pm.inputName = inputName;
-        pm.outputName = outputName;
+        pm.outputNames = outputNames;
 
         try {
             pm.mTFinferenceInterface = new TensorFlowInferenceInterface(assetManager, modelFilename);
@@ -46,45 +45,20 @@ public class PoseMachine {
             Log.e(TAG, "Exception:", e);
             throw e;
         }
-        final Operation operation = pm.mTFinferenceInterface.graphOperation(outputName);
-        final int numClasses = (int) operation.output(0).shape().size(1);
-        Log.i(TAG, "Output layer size:" + numClasses);
-
-        pm.inputWidth = inputWidth;
-        pm.inputHeight = inputHeight;
-        pm.outputNames = new String[]{outputName};
-        pm.intValues = new int[inputWidth * inputHeight];
-        pm.floatValues = new float[inputWidth * inputHeight * 3];
-        pm.outputs = new float[numClasses];
-
-        return pm;
-    }
-
-    public static PoseMachine getPoseMachine(AssetManager assetManager, String modelFilename,
-                                             int inputSize, int imageMean, int imageStd,
-                                             String inputName, String outputName) {
-        PoseMachine pm = new PoseMachine();
-        pm.inputName = inputName;
-        pm.outputName = outputName;
-
-        try {
-            pm.mTFinferenceInterface = new TensorFlowInferenceInterface(assetManager, modelFilename);
-        } catch (Exception e) {
-            Log.e(TAG, "Exception:", e);
-            throw e;
+        int maxOutputSize = Integer.MIN_VALUE;
+        for (final String outputName : pm.outputNames) {
+            final Operation operation = pm.mTFinferenceInterface.graphOperation(outputName);
+            final int outputSize = (int) operation.output(0).shape().size(1);
+            Log.i(TAG, "Output layer " + outputName + " size:" + outputSize);
+            maxOutputSize = Math.max(maxOutputSize, outputSize);
         }
-        final Operation operation = pm.mTFinferenceInterface.graphOperation(outputName);
-        final int numClasses = (int) operation.output(0).shape().size(1);
-        Log.i(TAG, "Output layer size:" + numClasses);
+        Log.i(TAG, "Allocated buffer size for output:" + maxOutputSize);
 
-        pm.inputSize = inputSize;
-        pm.imageMean = imageMean;
-        pm.imageStd = imageStd;
-
-        pm.outputNames = new String[]{outputName};
-        pm.intValues = new int[inputSize * inputSize];
-        pm.floatValues = new float[inputSize * inputSize * 3];
-        pm.outputs = new float[numClasses];
+        pm.inputWidth = inputSize;
+        pm.inputHeight = inputSize;
+        pm.intValues = new int[pm.inputWidth * pm.inputHeight];
+        pm.floatValues = new float[pm.inputWidth * pm.inputHeight * 3];
+        pm.outputs = new float[maxOutputSize];
 
         return pm;
     }
@@ -93,6 +67,7 @@ public class PoseMachine {
         Trace.beginSection("inferPose");
 
         Trace.beginSection("preprocessBitmap");
+        // TODO: faster way of preprocessing images?
         bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
         for (int i = 0; i < intValues.length; ++i) {
             final int val = intValues[i];
@@ -104,6 +79,7 @@ public class PoseMachine {
 
         mTFinferenceInterface.feed(inputName, floatValues, 1, inputHeight, inputWidth, 3);
         mTFinferenceInterface.run(outputNames, mIfLogStats);
+        // TODO: fetch the result and perform parsing to get skelton
 //        mTFinferenceInterface.fetch(outputName, outputs);
 
         Trace.endSection(); // inferPose

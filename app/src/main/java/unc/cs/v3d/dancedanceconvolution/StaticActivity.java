@@ -11,6 +11,7 @@ import android.os.UserHandle;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -23,9 +24,10 @@ public class StaticActivity extends AppCompatActivity {
     private static final String TAG = StaticActivity.class.getSimpleName();
     private ImageView mImageView;
     private Bitmap mBitmap;
+    private final int PAF_NET_SIZE = 224;
     private PoseMachine mPoseMachine;
     private TextView mTextView;
-    private static final String PERSON_MODEL_FILE = "file:///android_asset/person_net.pb";
+    private static final String PAFNET_MODEL_FILE = "file:///android_asset/paf_net_eightbit.pb";
     private static final String mImageFilePath = "ski.jpg";
 
     @Override
@@ -42,15 +44,18 @@ public class StaticActivity extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        mBitmap = BitmapFactory.decodeStream(istr);
+        Bitmap rawImage = BitmapFactory.decodeStream(istr);
+        mBitmap = Bitmap.createScaledBitmap(rawImage, PAF_NET_SIZE, PAF_NET_SIZE, false);
 
         mImageView.setImageBitmap(mBitmap);
         startTFInferenceThread();
 
         // init pose machine
-        mPoseMachine = PoseMachine.getPoseMachine(getAssets(), PERSON_MODEL_FILE, mBitmap.getWidth(), mBitmap.getHeight(), "image", "Mconv7_stage4");
+        String[] outputNames = new String[]{"conv5_5_CPM_L1", "conv5_5_CPM_L2"};
+        mPoseMachine = PoseMachine.getPoseMachine(getAssets(), PAFNET_MODEL_FILE, PAF_NET_SIZE, "image", outputNames);
         mPoseMachine.enableStatLogging(true);
-
+        mTextView = (TextView) findViewById(R.id.tv_tf_stats);
+        mTextView.setTextSize(8.0f);
     }
 
     @Override
@@ -78,8 +83,6 @@ public class StaticActivity extends AppCompatActivity {
                     Log.i(TAG, "Iteration " + (i + 1) + " avgTime: " + avgTime + "ms");
                 }
 
-                // output runtime stats
-                mTextView.setText(mPoseMachine.getStatString() + "\nAvg time " + avgTime + "ms.");
             }
         });
     }
@@ -109,5 +112,16 @@ public class StaticActivity extends AppCompatActivity {
         if (mHandler != null) {
             mHandler.post(r);
         }
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+            Log.v(TAG, "Trying to trigger overlay display");
+            mTextView.setText(mPoseMachine.getStatString());
+            mImageView.setImageBitmap(mBitmap);
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
     }
 }

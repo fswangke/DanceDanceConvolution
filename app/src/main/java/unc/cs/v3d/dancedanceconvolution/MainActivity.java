@@ -30,9 +30,7 @@ import java.util.Arrays;
 import java.util.Vector;
 
 // Convolutional Pose Machines (CPM) have two stages: 1) PersonNetwork 2) PoseNet
-// TODO: (fswangke) fire-up PersonNetwork
-// TODO: (fswangke) convert PersonNet output to PoseNet input via C++ library
-// TODO: (fswangke) fire-up PoseNetwork
+// TODO: (fswangke) post-process the PafNet results via C++
 // TODO: (fswangke) render the pose back to the image to visualize the Pose
 
 public class MainActivity extends AppCompatActivity implements
@@ -48,39 +46,42 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    private static final int PERMISSIONS_REQUEST = 123;
+    private static final String TAG = MainActivity.class.getSimpleName();
+
+    // Permission handling
     private static final String CAMERA_PERMISSION = Manifest.permission.CAMERA;
     private static final String STORAGE_PERMISSION = Manifest.permission.WRITE_EXTERNAL_STORAGE;
-    private HandlerThread mTFInferenceThread;
+    private static final int PERMISSIONS_REQUEST = 123;
+
+    // Background threads to run Tensorflow inference
     private Handler mTFInferenceHandler;
+    private HandlerThread mTFInferenceThread;
+
+    // camera preview image and cropped image for tensorflow
     private Bitmap mCroppedBitmap = null;
     private Bitmap mRgbFrameBitmap = null;
-    private BorderedText mBorderedText;
     private Matrix mCropToFrameTransform;
     private Matrix mFrameToCropTransform;
-    private OverlayView mOverlayView;
-    private PoseMachine mPoseMachine;
-    private boolean mIsInferring = false;
-    private boolean mShowTFRuntimeStats = false;
     private byte[][] mYuvBuffer;
     private int mPreviewHeight = 0;
     private int mPreviewWidth = 0;
     private int mSensorOrientation;
     private int[] mRgbBuffer;
+
+    // debug and running statstics info
+    private BorderedText mBorderedText;
+    private OverlayView mOverlayView;
+
+    // tensorflow model and classifier
+    private PoseMachine mPoseMachine;
+    private boolean mIsInferring = false;
+    private boolean mShowTFRuntimeStats = false;
     private long mLastInferenceTime;
-    private static final String INCEPTION_MODEL_FILE = "file:///android_asset/tensorflow_inception_graph.pb";
-    private static final String PERSON_MODEL_FILE = "file:///android_asset/person_net.pb";
-    private static final String POSE_MODEL_FILE = "";
-    private static final String TAG = MainActivity.class.getSimpleName();
     private static final float TEXT_SIZE_DIP = 10;
-    static final private String INCEPTION_INPUT_NODE_NAME = "input";
-    static final private String INCEPTION_OUTPUT_NODE_NAME = "output";
-    static final private int INCEPTION_IMAGE_MEAN = 117;
-    static final private int INCEPTION_IMAGE_STD = 1;
-    static final private int INCEPTION_INPUT_SIZE = 224;
-    static final private int PERSON_NET_HEIGHT = 376;
-    static final private int PERSON_NET_WIDTH = 656;
-    static final private boolean USE_INCEPTION = false;
+    private static final String PAFNET_MODEL_FILE = "file:///android_asset/paf_net_eightbit.pb";
+    static final private String PAFNET_INPUT_NODE_NAME = "image";
+    static final private String[] PAFNET_OUTPUT_NODE_NAMES = new String[]{"conv5_5_CPM_L1", "conv5_5_CPM_L2"};
+    static final private int PAFNET_INPUT_SIZE = 224;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,19 +95,11 @@ public class MainActivity extends AppCompatActivity implements
             requestPermission();
         }
 
-//        mPoseMachine = PoseMachine.getPoseMachine(getAssets(),
-//                PERSON_MODEL_FILE,
-//                INCEPTION_INPUT_SIZE,
-//                INCEPTION_IMAGE_MEAN,
-//                INCEPTION_IMAGE_STD,
-//                INCEPTION_INPUT_NODE_NAME,
-//                INCEPTION_OUTPUT_NODE_NAME);
         mPoseMachine = PoseMachine.getPoseMachine(getAssets(),
-                PERSON_MODEL_FILE,
-                PERSON_NET_WIDTH,
-                PERSON_NET_HEIGHT,
-                "image",
-                "conv1_1");
+                PAFNET_MODEL_FILE,
+                PAFNET_INPUT_SIZE,
+                PAFNET_INPUT_NODE_NAME,
+                PAFNET_OUTPUT_NODE_NAMES);
     }
 
     @Override
@@ -139,6 +132,7 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     protected void onDestroy() {
         Log.d(TAG, "onDestroy");
+        mPoseMachine.close();
         super.onDestroy();
     }
 
@@ -189,7 +183,6 @@ public class MainActivity extends AppCompatActivity implements
                 mLastInferenceTime = SystemClock.uptimeMillis() - startTime;
                 mIsInferring = false;
                 if (mShowTFRuntimeStats) {
-                    Log.v(TAG, "TIME (ms): " + mLastInferenceTime);
                     mOverlayView.postInvalidate();
                 }
             }
@@ -243,11 +236,11 @@ public class MainActivity extends AppCompatActivity implements
         mRgbBuffer = new int[mPreviewWidth * mPreviewHeight];
         mYuvBuffer = new byte[3][];
         mRgbFrameBitmap = Bitmap.createBitmap(mPreviewWidth, mPreviewHeight, Bitmap.Config.ARGB_8888);
-        mCroppedBitmap = Bitmap.createBitmap(PERSON_NET_WIDTH, PERSON_NET_HEIGHT,
+        mCroppedBitmap = Bitmap.createBitmap(PAFNET_INPUT_SIZE, PAFNET_INPUT_SIZE,
                 Bitmap.Config.ARGB_8888);
 
         mFrameToCropTransform = ImageUtils.getTransformationMatrix(mPreviewWidth, mPreviewHeight,
-                PERSON_NET_WIDTH, PERSON_NET_HEIGHT, mSensorOrientation, false);
+                PAFNET_INPUT_SIZE, PAFNET_INPUT_SIZE, mSensorOrientation, false);
         mCropToFrameTransform = new Matrix();
         mFrameToCropTransform.invert(mCropToFrameTransform);
     }
