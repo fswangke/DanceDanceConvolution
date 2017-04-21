@@ -21,6 +21,8 @@ public class PoseMachine {
     private String inputName;
     private String outputName;
     private int inputSize;
+    private int inputWidth;
+    private int inputHeight;
     private int imageMean;
     private int imageStd;
 
@@ -31,6 +33,32 @@ public class PoseMachine {
     private String[] outputNames;
 
     // Singleton pattern
+    public static PoseMachine getPoseMachine(AssetManager assetManager, String modelFilename,
+                                             int inputWidth, int inputHeight,
+                                             String inputName, String outputName) {
+        PoseMachine pm = new PoseMachine();
+        pm.inputName = inputName;
+        pm.outputName = outputName;
+
+        try {
+            pm.mTFinferenceInterface = new TensorFlowInferenceInterface(assetManager, modelFilename);
+        } catch (Exception e) {
+            Log.e(TAG, "Exception:", e);
+            throw e;
+        }
+        final Operation operation = pm.mTFinferenceInterface.graphOperation(outputName);
+        final int numClasses = (int) operation.output(0).shape().size(1);
+        Log.i(TAG, "Output layer size:" + numClasses);
+
+        pm.inputWidth = inputWidth;
+        pm.inputHeight = inputHeight;
+        pm.outputNames = new String[]{outputName};
+        pm.intValues = new int[inputWidth * inputHeight];
+        pm.floatValues = new float[inputWidth * inputHeight * 3];
+        pm.outputs = new float[numClasses];
+
+        return pm;
+    }
 
     public static PoseMachine getPoseMachine(AssetManager assetManager, String modelFilename,
                                              int inputSize, int imageMean, int imageStd,
@@ -68,15 +96,15 @@ public class PoseMachine {
         bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
         for (int i = 0; i < intValues.length; ++i) {
             final int val = intValues[i];
-            floatValues[i * 3 + 0] = (((val >> 16) & 0xFF) - imageMean) / imageStd;
-            floatValues[i * 3 + 1] = (((val >> 8) & 0xFF) - imageMean) / imageStd;
-            floatValues[i * 3 + 2] = ((val & 0xFF) - imageMean) / imageStd;
+            floatValues[i * 3 + 0] = (float) ((val >> 16) & 0xFF) / 255.0f - 0.5f;
+            floatValues[i * 3 + 1] = (float) ((val >> 8) & 0xFF) / 255.0f - 0.5f;
+            floatValues[i * 3 + 2] = (float) (val & 0xFF) / 255.0f - 0.5f;
         }
         Trace.endSection(); // preprocessBitmap
 
-        mTFinferenceInterface.feed(inputName, floatValues, 1, inputSize, inputSize, 3);
+        mTFinferenceInterface.feed(inputName, floatValues, 1, inputHeight, inputWidth, 3);
         mTFinferenceInterface.run(outputNames, mIfLogStats);
-        mTFinferenceInterface.fetch(outputName, outputs);
+//        mTFinferenceInterface.fetch(outputName, outputs);
 
         Trace.endSection(); // inferPose
     }

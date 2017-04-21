@@ -69,7 +69,7 @@ public class MainActivity extends AppCompatActivity implements
     private int[] mRgbBuffer;
     private long mLastInferenceTime;
     private static final String INCEPTION_MODEL_FILE = "file:///android_asset/tensorflow_inception_graph.pb";
-    private static final String PERSON_MODEL_FILE = "";
+    private static final String PERSON_MODEL_FILE = "file:///android_asset/person_net.pb";
     private static final String POSE_MODEL_FILE = "";
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final float TEXT_SIZE_DIP = 10;
@@ -78,7 +78,9 @@ public class MainActivity extends AppCompatActivity implements
     static final private int INCEPTION_IMAGE_MEAN = 117;
     static final private int INCEPTION_IMAGE_STD = 1;
     static final private int INCEPTION_INPUT_SIZE = 224;
-    static final private boolean USE_INCEPTION = true;
+    static final private int PERSON_NET_HEIGHT = 376;
+    static final private int PERSON_NET_WIDTH = 656;
+    static final private boolean USE_INCEPTION = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,13 +94,19 @@ public class MainActivity extends AppCompatActivity implements
             requestPermission();
         }
 
+//        mPoseMachine = PoseMachine.getPoseMachine(getAssets(),
+//                PERSON_MODEL_FILE,
+//                INCEPTION_INPUT_SIZE,
+//                INCEPTION_IMAGE_MEAN,
+//                INCEPTION_IMAGE_STD,
+//                INCEPTION_INPUT_NODE_NAME,
+//                INCEPTION_OUTPUT_NODE_NAME);
         mPoseMachine = PoseMachine.getPoseMachine(getAssets(),
-                INCEPTION_MODEL_FILE,
-                INCEPTION_INPUT_SIZE,
-                INCEPTION_IMAGE_MEAN,
-                INCEPTION_IMAGE_STD,
-                INCEPTION_INPUT_NODE_NAME,
-                INCEPTION_OUTPUT_NODE_NAME);
+                PERSON_MODEL_FILE,
+                PERSON_NET_WIDTH,
+                PERSON_NET_HEIGHT,
+                "image",
+                "conv1_1");
     }
 
     @Override
@@ -210,6 +218,8 @@ public class MainActivity extends AppCompatActivity implements
                 }
 
                 final Vector<String> lines = new Vector<String>();
+
+
                 final String statString = mPoseMachine.getStatString();
                 String[] statLines = statString.split("\n");
                 lines.addAll(Arrays.asList(statLines));
@@ -219,6 +229,7 @@ public class MainActivity extends AppCompatActivity implements
                 lines.add("View:  " + canvas.getWidth() + "x" + canvas.getHeight());
                 lines.add("Rotation: " + mSensorOrientation);
                 lines.add("Inference time: " + mLastInferenceTime + "ms");
+
 
                 mBorderedText.drawLiness(canvas, 10, canvas.getHeight() - 10, lines);
             }
@@ -232,11 +243,11 @@ public class MainActivity extends AppCompatActivity implements
         mRgbBuffer = new int[mPreviewWidth * mPreviewHeight];
         mYuvBuffer = new byte[3][];
         mRgbFrameBitmap = Bitmap.createBitmap(mPreviewWidth, mPreviewHeight, Bitmap.Config.ARGB_8888);
-        mCroppedBitmap = Bitmap.createBitmap(INCEPTION_INPUT_SIZE, INCEPTION_INPUT_SIZE,
+        mCroppedBitmap = Bitmap.createBitmap(PERSON_NET_WIDTH, PERSON_NET_HEIGHT,
                 Bitmap.Config.ARGB_8888);
 
         mFrameToCropTransform = ImageUtils.getTransformationMatrix(mPreviewWidth, mPreviewHeight,
-                INCEPTION_INPUT_SIZE, INCEPTION_INPUT_SIZE, mSensorOrientation, false);
+                PERSON_NET_WIDTH, PERSON_NET_HEIGHT, mSensorOrientation, false);
         mCropToFrameTransform = new Matrix();
         mFrameToCropTransform.invert(mCropToFrameTransform);
     }
@@ -306,7 +317,8 @@ public class MainActivity extends AppCompatActivity implements
 
     private void setFragment() {
         final Fragment fragment = CameraFragment.getInstance(
-                this, this, R.layout.camera_fragment, new Size(640, 480));
+                // fixme(fswangke): adjust fragment size based on CPM required input size
+                this, this, R.layout.camera_fragment, new Size(720, 480));
 
         getFragmentManager().beginTransaction().replace(R.id.container, fragment).commit();
     }

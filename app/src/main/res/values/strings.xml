@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">DanceDanceConvolution</string>
+    <string name="static_app_name">DDC Image</string>
 </resources>
