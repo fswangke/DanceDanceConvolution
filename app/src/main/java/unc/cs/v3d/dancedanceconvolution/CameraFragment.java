@@ -258,6 +258,10 @@ public class CameraFragment extends Fragment {
      */
     private int mLayoutId;
 
+    public CameraFragment(){
+        mInputSize = null;
+        mCameraConnectionCallback = null;
+    }
     /**
      * Singleton pattern.
      */
@@ -433,9 +437,7 @@ public class CameraFragment extends Fragment {
             Log.e(TAG, e.getMessage());
         }
 
-        Log.e(TAG, "Ever here?");
         mCameraConnectionCallback.onPreviewSizeChosen(mPreviewSize, mSensorRotation);
-        Log.e(TAG, "Really here.");
     }
 
     /**

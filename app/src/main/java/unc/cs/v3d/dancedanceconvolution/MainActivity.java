@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
+import android.graphics.Typeface;
 import android.graphics.YuvImage;
 import android.media.Image;
 import android.media.ImageReader;
@@ -22,13 +23,11 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.util.Size;
+import android.util.TypedValue;
 import android.view.Display;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.Toast;
-
-import com.flurgle.camerakit.CameraListener;
-import com.flurgle.camerakit.CameraView;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -47,15 +46,16 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
     static {
         try {
             System.loadLibrary("colorspace_conversion");
+            System.loadLibrary("tensorflow_inference");
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     private static final String TAG = MainActivity.class.getSimpleName();
-    private CameraView mCameraPreview;
     private static final String PERSON_MODEL_FILE = "";
     private static final String POSE_MODEL_FILE = "";
+    private static final String INCEPTION_MODEL_FILE = "file:///android_asset/tensorflow_inception_graph.pb";
 
     private PoseMachine mPoseMachine;
 
@@ -70,6 +70,8 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
     private Matrix mFrameToCropTransform;
     private Matrix mCropToFrameTransform;
 
+    private OverlayView mOverlayView;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +79,7 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
 
+        mPoseMachine = PoseMachine.getPoseMachine(getAssets(), INCEPTION_MODEL_FILE, 224, 117, 1, "input", "output");
         if (hasPermission()) {
             setFragment();
         } else {
@@ -152,17 +155,31 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
         runInTFInferenceThread(new Runnable() {
             @Override
             public void run() {
-                // TODO: do the real job here
+                final long startTime = SystemClock.uptimeMillis();
+                mPoseMachine.inferPose(mCroppedBitmap);
+                mLastInferenceTime = SystemClock.uptimeMillis() - startTime;
+
             }
         });
         Trace.endSection();
     }
 
     private int mSensorOrientation;
+    private static final float TEXT_SIZE_DIP = 10;
+    private BorderedText mBorderedText;
+    private long mLastInferenceTime;
+
     @Override
     public void onPreviewSizeChosen(Size size, int rotation) {
+        final float textSizePx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, TEXT_SIZE_DIP, getResources().getDisplayMetrics());
+        mBorderedText = new BorderedText(textSizePx);
+        mBorderedText.setTypeFace(Typeface.MONOSPACE);
+
+
         mPreviewHeight = size.getHeight();
         mPreviewWidth = size.getWidth();
+
+        mOverlayView = (OverlayView) findViewById(R.id.stats_overlay_view);
 
         final Display display = getWindowManager().getDefaultDisplay();
         final int screenOrientation = display.getRotation();

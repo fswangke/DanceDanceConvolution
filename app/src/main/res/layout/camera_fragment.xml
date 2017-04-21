@@ -9,5 +9,9 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true" />
 
-
+    <unc.cs.v3d.dancedanceconvolution.OverlayView
+        android:id="@+id/stats_overlay_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true" />
 </RelativeLayout>
