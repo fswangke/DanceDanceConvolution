@@ -32,7 +32,9 @@ public class PoseMachine {
 
     // Singleton pattern
 
-    public static PoseMachine getPoseMachine(AssetManager assetManager, String modelFilename, int inputSize, int imageMean, int imageStd, String inputName, String outputName) {
+    public static PoseMachine getPoseMachine(AssetManager assetManager, String modelFilename,
+                                             int inputSize, int imageMean, int imageStd,
+                                             String inputName, String outputName) {
         PoseMachine pm = new PoseMachine();
         pm.inputName = inputName;
         pm.outputName = outputName;

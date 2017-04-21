@@ -4,16 +4,12 @@ import android.Manifest;
 import android.app.Fragment;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Typeface;
-import android.graphics.YuvImage;
 import android.media.Image;
 import android.media.ImageReader;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.SystemClock;
@@ -27,13 +23,8 @@ import android.util.TypedValue;
 import android.view.Display;
 import android.view.KeyEvent;
 import android.view.WindowManager;
-import android.widget.ImageView;
 import android.widget.Toast;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Vector;
@@ -44,7 +35,10 @@ import java.util.Vector;
 // TODO: (fswangke) fire-up PoseNetwork
 // TODO: (fswangke) render the pose back to the image to visualize the Pose
 
-public class MainActivity extends AppCompatActivity implements ImageReader.OnImageAvailableListener, CameraFragment.OnCameraConnectionCallback, ActivityCompat.OnRequestPermissionsResultCallback {
+public class MainActivity extends AppCompatActivity implements
+        ImageReader.OnImageAvailableListener,
+        CameraFragment.OnCameraConnectionCallback,
+        ActivityCompat.OnRequestPermissionsResultCallback {
     static {
         try {
             System.loadLibrary("colorspace_conversion");
@@ -54,26 +48,37 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
         }
     }
 
-    private static final String TAG = MainActivity.class.getSimpleName();
+    private static final int PERMISSIONS_REQUEST = 123;
+    private static final String CAMERA_PERMISSION = Manifest.permission.CAMERA;
+    private static final String STORAGE_PERMISSION = Manifest.permission.WRITE_EXTERNAL_STORAGE;
+    private HandlerThread mTFInferenceThread;
+    private Handler mTFInferenceHandler;
+    private Bitmap mCroppedBitmap = null;
+    private Bitmap mRgbFrameBitmap = null;
+    private BorderedText mBorderedText;
+    private Matrix mCropToFrameTransform;
+    private Matrix mFrameToCropTransform;
+    private OverlayView mOverlayView;
+    private PoseMachine mPoseMachine;
+    private boolean mIsInferring = false;
+    private boolean mShowTFRuntimeStats = false;
+    private byte[][] mYuvBuffer;
+    private int mPreviewHeight = 0;
+    private int mPreviewWidth = 0;
+    private int mSensorOrientation;
+    private int[] mRgbBuffer;
+    private long mLastInferenceTime;
+    private static final String INCEPTION_MODEL_FILE = "file:///android_asset/tensorflow_inception_graph.pb";
     private static final String PERSON_MODEL_FILE = "";
     private static final String POSE_MODEL_FILE = "";
-    private static final String INCEPTION_MODEL_FILE = "file:///android_asset/tensorflow_inception_graph.pb";
-
-    private PoseMachine mPoseMachine;
-
-    private int mPreviewWidth = 0;
-    private int mPreviewHeight = 0;
-    private byte[][] mYuvBuffer;
-    private int[] mRgbBuffer;
-    private Bitmap mRgbFrameBitmap = null;
-    private Bitmap mCroppedBitmap = null;
-
-    private Matrix mFrameToCropTransform;
-    private Matrix mCropToFrameTransform;
-
-    private OverlayView mOverlayView;
-    private boolean mShowTFRuntimeStats = false;
-
+    private static final String TAG = MainActivity.class.getSimpleName();
+    private static final float TEXT_SIZE_DIP = 10;
+    static final private String INCEPTION_INPUT_NODE_NAME = "input";
+    static final private String INCEPTION_OUTPUT_NODE_NAME = "output";
+    static final private int INCEPTION_IMAGE_MEAN = 117;
+    static final private int INCEPTION_IMAGE_STD = 1;
+    static final private int INCEPTION_INPUT_SIZE = 224;
+    static final private boolean USE_INCEPTION = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,28 +92,13 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
             requestPermission();
         }
 
-        mPoseMachine = PoseMachine.getPoseMachine(getAssets(), INCEPTION_MODEL_FILE, 224, 117, 1, "input", "output");
-//        mOverlayView.addCallback(new OverlayView.DrawCallback() {
-//            @Override
-//            public void drawCallback(Canvas canvas) {
-//                if (!mShowTFRuntimeStats) {
-//                    return;
-//                }
-//
-//                final Vector<String> lines = new Vector<String>();
-//                final String statString = mPoseMachine.getStatString();
-//                String[] statLines = statString.split("\n");
-//                lines.addAll(Arrays.asList(statLines));
-//
-//                lines.add("Frame: " + mPreviewWidth + "x" + mPreviewHeight);
-//                lines.add("Crop:  " + mCroppedBitmap.getWidth() + "x" + mCroppedBitmap.getHeight());
-//                lines.add("View:  " + canvas.getWidth() + "x" + canvas.getHeight());
-//                lines.add("Rotation: " + mSensorOrientation);
-//                lines.add("Inference time: " + mLastInferenceTime + "ms");
-//
-//                mBorderedText.drawLiness(canvas, 10, canvas.getHeight() - 10, lines);
-//            }
-//        });
+        mPoseMachine = PoseMachine.getPoseMachine(getAssets(),
+                INCEPTION_MODEL_FILE,
+                INCEPTION_INPUT_SIZE,
+                INCEPTION_IMAGE_MEAN,
+                INCEPTION_IMAGE_STD,
+                INCEPTION_INPUT_NODE_NAME,
+                INCEPTION_OUTPUT_NODE_NAME);
     }
 
     @Override
@@ -144,7 +134,6 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
         super.onDestroy();
     }
 
-    private boolean mIsInferring = false;
 
     @Override
     public void onImageAvailable(ImageReader reader) {
@@ -191,7 +180,7 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
                 mPoseMachine.inferPose(mCroppedBitmap);
                 mLastInferenceTime = SystemClock.uptimeMillis() - startTime;
                 mIsInferring = false;
-                if(mShowTFRuntimeStats) {
+                if (mShowTFRuntimeStats) {
                     Log.v(TAG, "TIME (ms): " + mLastInferenceTime);
                     mOverlayView.postInvalidate();
                 }
@@ -200,14 +189,11 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
         Trace.endSection();
     }
 
-    private int mSensorOrientation;
-    private static final float TEXT_SIZE_DIP = 10;
-    private BorderedText mBorderedText;
-    private long mLastInferenceTime;
 
     @Override
     public void onPreviewSizeChosen(Size size, int rotation) {
-        final float textSizePx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, TEXT_SIZE_DIP, getResources().getDisplayMetrics());
+        final float textSizePx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
+                TEXT_SIZE_DIP, getResources().getDisplayMetrics());
         mBorderedText = new BorderedText(textSizePx);
         mBorderedText.setTypeFace(Typeface.MONOSPACE);
 
@@ -240,19 +226,19 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
 
         final Display display = getWindowManager().getDefaultDisplay();
         final int screenOrientation = display.getRotation();
-        Log.d(TAG, String.format("Sensor rotation %d screen rotation %d", rotation, screenOrientation));
+        Log.d(TAG, "Sensor rotation " + rotation + " screen rotation " + screenOrientation);
         mSensorOrientation = screenOrientation + rotation;
 
         mRgbBuffer = new int[mPreviewWidth * mPreviewHeight];
+        mYuvBuffer = new byte[3][];
         mRgbFrameBitmap = Bitmap.createBitmap(mPreviewWidth, mPreviewHeight, Bitmap.Config.ARGB_8888);
-        // fixme: (fswangke): change to actual input size to CPM
-        mCroppedBitmap = Bitmap.createBitmap(224, 224, Bitmap.Config.ARGB_8888);
+        mCroppedBitmap = Bitmap.createBitmap(INCEPTION_INPUT_SIZE, INCEPTION_INPUT_SIZE,
+                Bitmap.Config.ARGB_8888);
 
-        mFrameToCropTransform = ImageUtils.getTransformationMatrix(mPreviewWidth, mPreviewHeight, 224, 224, mSensorOrientation, false);
+        mFrameToCropTransform = ImageUtils.getTransformationMatrix(mPreviewWidth, mPreviewHeight,
+                INCEPTION_INPUT_SIZE, INCEPTION_INPUT_SIZE, mSensorOrientation, false);
         mCropToFrameTransform = new Matrix();
         mFrameToCropTransform.invert(mCropToFrameTransform);
-
-        mYuvBuffer = new byte[3][];
     }
 
     private void fillBuffer(final Image.Plane[] channels, final byte[][] yuvBuffer) {
@@ -265,8 +251,6 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
         }
     }
 
-    private HandlerThread mTFInferenceThread;
-    private Handler mTFInferenceHandler;
 
     private void startTFInferenceThread() {
         mTFInferenceThread = new HandlerThread("TFInference");
@@ -291,17 +275,17 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
         }
     }
 
-    private static final int PERMISSIONS_REQUEST = 123;
-    private static final String CAMERA_PERMISSION = Manifest.permission.CAMERA;
-    private static final String STORAGE_PERMISSION = Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
     private boolean hasPermission() {
-        return checkSelfPermission(CAMERA_PERMISSION) == PackageManager.PERMISSION_GRANTED && checkSelfPermission(STORAGE_PERMISSION) == PackageManager.PERMISSION_GRANTED;
+        return checkSelfPermission(CAMERA_PERMISSION) == PackageManager.PERMISSION_GRANTED &&
+                checkSelfPermission(STORAGE_PERMISSION) == PackageManager.PERMISSION_GRANTED;
     }
 
     private void requestPermission() {
-        if (shouldShowRequestPermissionRationale(CAMERA_PERMISSION) || shouldShowRequestPermissionRationale(STORAGE_PERMISSION)) {
-            Toast.makeText(MainActivity.this, "Camera and Storage are necessary for this app.", Toast.LENGTH_SHORT).show();
+        if (shouldShowRequestPermissionRationale(CAMERA_PERMISSION) ||
+                shouldShowRequestPermissionRationale(STORAGE_PERMISSION)) {
+            Toast.makeText(MainActivity.this, "Camera and Storage are necessary for this app.",
+                    Toast.LENGTH_SHORT).show();
         }
         requestPermissions(new String[]{CAMERA_PERMISSION, STORAGE_PERMISSION}, PERMISSIONS_REQUEST);
     }
@@ -310,7 +294,8 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch (requestCode) {
             case PERMISSIONS_REQUEST: {
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED &&
+                        grantResults[1] == PackageManager.PERMISSION_GRANTED) {
                     setFragment();
                 } else {
                     requestPermission();
@@ -328,9 +313,9 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
             Log.v(TAG, "Trying to trigger overlay display");
-            mShowTFRuntimeStats = ! mShowTFRuntimeStats;
+            mShowTFRuntimeStats = !mShowTFRuntimeStats;
             mPoseMachine.enableStatLogging(mShowTFRuntimeStats);
             mOverlayView.postInvalidate();
             return true;
