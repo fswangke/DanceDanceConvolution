@@ -25,6 +25,7 @@ import android.util.Log;
 import android.util.Size;
 import android.util.TypedValue;
 import android.view.Display;
+import android.view.KeyEvent;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -34,8 +35,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Vector;
 
-// TODO: (fswangke) add a transparent overlay view/canvas to draw the human pose skeleton
 // Convolutional Pose Machines (CPM) have two stages: 1) PersonNetwork 2) PoseNet
 // TODO: (fswangke) fire-up PersonNetwork
 // TODO: (fswangke) convert PersonNet output to PoseNet input via C++ library
@@ -65,12 +67,12 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
     private int[] mRgbBuffer;
     private Bitmap mRgbFrameBitmap = null;
     private Bitmap mCroppedBitmap = null;
-    private Bitmap mCropCopyBitmap = null;
 
     private Matrix mFrameToCropTransform;
     private Matrix mCropToFrameTransform;
 
     private OverlayView mOverlayView;
+    private boolean mShowTFRuntimeStats = false;
 
 
     @Override
@@ -79,12 +81,34 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
 
-        mPoseMachine = PoseMachine.getPoseMachine(getAssets(), INCEPTION_MODEL_FILE, 224, 117, 1, "input", "output");
         if (hasPermission()) {
             setFragment();
         } else {
             requestPermission();
         }
+
+        mPoseMachine = PoseMachine.getPoseMachine(getAssets(), INCEPTION_MODEL_FILE, 224, 117, 1, "input", "output");
+//        mOverlayView.addCallback(new OverlayView.DrawCallback() {
+//            @Override
+//            public void drawCallback(Canvas canvas) {
+//                if (!mShowTFRuntimeStats) {
+//                    return;
+//                }
+//
+//                final Vector<String> lines = new Vector<String>();
+//                final String statString = mPoseMachine.getStatString();
+//                String[] statLines = statString.split("\n");
+//                lines.addAll(Arrays.asList(statLines));
+//
+//                lines.add("Frame: " + mPreviewWidth + "x" + mPreviewHeight);
+//                lines.add("Crop:  " + mCroppedBitmap.getWidth() + "x" + mCroppedBitmap.getHeight());
+//                lines.add("View:  " + canvas.getWidth() + "x" + canvas.getHeight());
+//                lines.add("Rotation: " + mSensorOrientation);
+//                lines.add("Inference time: " + mLastInferenceTime + "ms");
+//
+//                mBorderedText.drawLiness(canvas, 10, canvas.getHeight() - 10, lines);
+//            }
+//        });
     }
 
     @Override
@@ -120,6 +144,8 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
         super.onDestroy();
     }
 
+    private boolean mIsInferring = false;
+
     @Override
     public void onImageAvailable(ImageReader reader) {
         Image image = null;
@@ -128,6 +154,12 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
             return;
         }
 
+        if (mIsInferring) {
+            image.close();
+            return;
+        }
+
+        mIsInferring = true;
         Trace.beginSection("TensorFlowInference");
 
         final Image.Plane[] planes = image.getPlanes();
@@ -158,7 +190,11 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
                 final long startTime = SystemClock.uptimeMillis();
                 mPoseMachine.inferPose(mCroppedBitmap);
                 mLastInferenceTime = SystemClock.uptimeMillis() - startTime;
-
+                mIsInferring = false;
+                if(mShowTFRuntimeStats) {
+                    Log.v(TAG, "TIME (ms): " + mLastInferenceTime);
+                    mOverlayView.postInvalidate();
+                }
             }
         });
         Trace.endSection();
@@ -180,6 +216,27 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
         mPreviewWidth = size.getWidth();
 
         mOverlayView = (OverlayView) findViewById(R.id.stats_overlay_view);
+        mOverlayView.addCallback(new OverlayView.DrawCallback() {
+            @Override
+            public void drawCallback(Canvas canvas) {
+                if (!mShowTFRuntimeStats) {
+                    return;
+                }
+
+                final Vector<String> lines = new Vector<String>();
+                final String statString = mPoseMachine.getStatString();
+                String[] statLines = statString.split("\n");
+                lines.addAll(Arrays.asList(statLines));
+
+                lines.add("Frame: " + mPreviewWidth + "x" + mPreviewHeight);
+                lines.add("Crop:  " + mCroppedBitmap.getWidth() + "x" + mCroppedBitmap.getHeight());
+                lines.add("View:  " + canvas.getWidth() + "x" + canvas.getHeight());
+                lines.add("Rotation: " + mSensorOrientation);
+                lines.add("Inference time: " + mLastInferenceTime + "ms");
+
+                mBorderedText.drawLiness(canvas, 10, canvas.getHeight() - 10, lines);
+            }
+        });
 
         final Display display = getWindowManager().getDefaultDisplay();
         final int screenOrientation = display.getRotation();
@@ -267,5 +324,18 @@ public class MainActivity extends AppCompatActivity implements ImageReader.OnIma
                 this, this, R.layout.camera_fragment, new Size(640, 480));
 
         getFragmentManager().beginTransaction().replace(R.id.container, fragment).commit();
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+            Log.v(TAG, "Trying to trigger overlay display");
+            mShowTFRuntimeStats = ! mShowTFRuntimeStats;
+            mPoseMachine.enableStatLogging(mShowTFRuntimeStats);
+            mOverlayView.postInvalidate();
+            return true;
+        }
+
+        return super.onKeyDown(keyCode, event);
     }
 }

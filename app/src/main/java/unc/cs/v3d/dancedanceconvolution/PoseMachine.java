@@ -74,7 +74,7 @@ public class PoseMachine {
 
         mTFinferenceInterface.feed(inputName, floatValues, 1, inputSize, inputSize, 3);
         mTFinferenceInterface.run(outputNames, mIfLogStats);
-        mTFinferenceInterface.feed(outputName, outputs);
+        mTFinferenceInterface.fetch(outputName, outputs);
 
         Trace.endSection(); // inferPose
     }
