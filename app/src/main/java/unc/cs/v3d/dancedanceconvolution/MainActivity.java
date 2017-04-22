@@ -23,6 +23,8 @@ import android.util.TypedValue;
 import android.view.Display;
 import android.view.KeyEvent;
 import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import java.nio.ByteBuffer;
@@ -83,6 +85,9 @@ public class MainActivity extends AppCompatActivity implements
     static final private String[] PAFNET_OUTPUT_NODE_NAMES = new String[]{"conv5_5_CPM_L1", "conv5_5_CPM_L2"};
     static final private int PAFNET_INPUT_SIZE = 224;
 
+    static final private int NUM_INSTRUCTIONS = 2;
+    private Button[] buttons_instruction_correct;
+    private Button[] buttons_instruction_infer;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -100,6 +105,34 @@ public class MainActivity extends AppCompatActivity implements
                 PAFNET_INPUT_SIZE,
                 PAFNET_INPUT_NODE_NAME,
                 PAFNET_OUTPUT_NODE_NAMES);
+    }
+
+    protected void create_instructions(){
+        if (buttons_instruction_correct != null && buttons_instruction_infer!= null) return;
+        LinearLayout instructions_correct = (LinearLayout) findViewById(R.id.instructions_correct);
+        LinearLayout instructions_infer   = (LinearLayout) findViewById(R.id.instructions_infer);
+        buttons_instruction_correct = new Button[NUM_INSTRUCTIONS];
+        buttons_instruction_infer   = new Button[NUM_INSTRUCTIONS];
+        for (int i = 0; i < NUM_INSTRUCTIONS; ++i){
+            buttons_instruction_correct[i]  = new Button(this);
+            buttons_instruction_correct[i].setTag(i);
+            buttons_instruction_correct[i].setTextColor(getResources().getColor(R.color.colorAccent));
+            buttons_instruction_correct[i].setText("" + (char) ('A' + i));
+            instructions_correct.addView(buttons_instruction_correct[i],
+                    new LinearLayout.LayoutParams(
+                            (int) getResources().getDimension(R.dimen.instruction_width),
+                            (int) getResources().getDimension(R.dimen.instruction_height)));
+
+            buttons_instruction_infer[i]  = new Button(this);
+            buttons_instruction_infer[i].setTag(i);
+            buttons_instruction_infer[i].setTextColor(getResources().getColor(R.color.colorAccent));
+            buttons_instruction_infer[i].setText("" + (char) ('S' + i));
+            instructions_infer.addView(buttons_instruction_infer[i],
+                    new LinearLayout.LayoutParams(
+                            (int) getResources().getDimension(R.dimen.instruction_width),
+                            (int) getResources().getDimension(R.dimen.instruction_height)));
+        }
+
     }
 
     @Override
@@ -243,6 +276,10 @@ public class MainActivity extends AppCompatActivity implements
                 PAFNET_INPUT_SIZE, PAFNET_INPUT_SIZE, mSensorOrientation, false);
         mCropToFrameTransform = new Matrix();
         mFrameToCropTransform.invert(mCropToFrameTransform);
+
+
+
+        create_instructions();
     }
 
     private void fillBuffer(final Image.Plane[] channels, final byte[][] yuvBuffer) {

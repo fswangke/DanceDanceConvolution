@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="instruction_width">66dp</dimen>
+    <dimen name="instruction_height">66dp</dimen>
+</resources>
