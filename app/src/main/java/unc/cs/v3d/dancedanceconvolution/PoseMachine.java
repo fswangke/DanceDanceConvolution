@@ -25,9 +25,10 @@ public class PoseMachine {
     // pre-allocated buffers
     private int[] mInputIntBuffer;
     private float[] mInputFloatBuffer;
-    private float[] mOutputPAF;
     private float[] mOutputHeatmap;
     private String[] mOutputNames;
+    private float[] mDetectedPositions;
+    private float[] mDetectionScores;
 
     int getTensorSize(final Operation op) {
         final int outputTensorRank = op.output(0).shape().numDimensions();
@@ -64,15 +65,12 @@ public class PoseMachine {
         pm.mOutputHeatmap = new float[heatmapOutputTensorSize];
         Log.i(TAG, "Allocated output buffer size for heatmap:" + heatmapOutputTensorSize);
 
-        final Operation pafOp = pm.mTFinferenceInterface.graphOperation(outputNames[0]);
-        final int pafOutputTensorSize = pm.getTensorSize(pafOp);
-        pm.mOutputPAF = new float[pafOutputTensorSize];
-        Log.i(TAG, "Allocated output buffer size for paf:" + pafOutputTensorSize);
-
         pm.mInputWidth = inputSize;
         pm.mInputHeight = inputSize;
         pm.mInputIntBuffer = new int[pm.mInputWidth * pm.mInputHeight];
         pm.mInputFloatBuffer = new float[pm.mInputWidth * pm.mInputHeight * 3];
+        pm.mDetectionScores = new float[18];
+        pm.mDetectedPositions = new float[18*2];
 
         return pm;
     }
@@ -81,8 +79,8 @@ public class PoseMachine {
         return mOutputHeatmap;
     }
 
-    public float[] getPAFs() {
-        return mOutputPAF;
+    public float[] getDetectedPositions() {
+        return mDetectedPositions;
     }
 
     public void inferPose(Bitmap bitmap) {
@@ -101,9 +99,25 @@ public class PoseMachine {
 
         mTFinferenceInterface.feed(mInputName, mInputFloatBuffer, 1, mInputHeight, mInputWidth, 3);
         mTFinferenceInterface.run(mOutputNames, mIfLogStats);
-        // TODO: fetch the result and perform parsing to get skelton
-        mTFinferenceInterface.fetch(mOutputNames[0], mOutputPAF);
-        mTFinferenceInterface.fetch(mOutputNames[1], mOutputHeatmap);
+        mTFinferenceInterface.fetch(mOutputNames[0], mOutputHeatmap);
+
+        // TODO: simple arg-max hack to pick one person
+        // TensorFlow output tensor shape: 1x46x46x19
+        for(int partId = 0; partId < 18; ++partId) {
+            mDetectionScores[partId] = Float.MIN_VALUE;
+        }
+        for(int row = 0; row < mInputHeight; ++row) {
+            for(int col = 0; col < mInputWidth; ++col) {
+                for(int part = 0; part < 18; ++part) {
+                    int index = part + (col + row * mInputWidth) * 19;
+                    if(mOutputHeatmap[index] > mDetectionScores[part]) {
+                        mDetectionScores[part] = mOutputHeatmap[index];
+                        mDetectedPositions[part * 2 + 0] = row;
+                        mDetectedPositions[part * 2 + 1] = col;
+                    }
+                }
+            }
+        }
 
         Trace.endSection(); // inferPose
     }

@@ -83,9 +83,9 @@ public class MainActivity extends AppCompatActivity implements
     private boolean mShowTFRuntimeStats = false;
     private long mLastInferenceTime;
     private static final float TEXT_SIZE_DIP = 10;
-    private static final String PAFNET_MODEL_FILE = "file:///android_asset/paf_net_eightbit.pb";
+    private static final String PAFNET_MODEL_FILE = "file:///android_asset/paf_net_simple_eightbit.pb";
     static final private String PAFNET_INPUT_NODE_NAME = "image";
-    static final private String[] PAFNET_OUTPUT_NODE_NAMES = new String[]{"conv5_5_CPM_L1", "conv5_5_CPM_L2"};
+    static final private String[] PAFNET_OUTPUT_NODE_NAMES = new String[]{"conv5_5_CPM_L1"};
     static final private int PAFNET_INPUT_SIZE = 224;
 
     static final private int NUM_INSTRUCTIONS = 2;
