@@ -22,13 +22,16 @@ import android.util.Size;
 import android.util.TypedValue;
 import android.view.Display;
 import android.view.KeyEvent;
+import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Timer;
 import java.util.Vector;
 
 // Convolutional Pose Machines (CPM) have two stages: 1) PersonNetwork 2) PoseNet
@@ -88,6 +91,10 @@ public class MainActivity extends AppCompatActivity implements
     static final private int NUM_INSTRUCTIONS = 2;
     private Button[] buttons_instruction_correct;
     private Button[] buttons_instruction_infer;
+
+
+    Timer mTimer;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -105,6 +112,13 @@ public class MainActivity extends AppCompatActivity implements
                 PAFNET_INPUT_SIZE,
                 PAFNET_INPUT_NODE_NAME,
                 PAFNET_OUTPUT_NODE_NAMES);
+    }
+
+    public void startGame(View view){
+        create_instructions();
+
+        if (mTimer != null) mTimer = new Timer();
+        //setTimerTask();
     }
 
     protected void create_instructions(){
@@ -153,18 +167,21 @@ public class MainActivity extends AppCompatActivity implements
     protected void onPause() {
         Log.d(TAG, "onPause");
         stopTFInferenceThread();
+        mTimer.cancel();
         super.onPause();
     }
 
     @Override
     protected void onStop() {
         Log.d(TAG, "onStop");
+        mTimer.cancel();
         super.onStop();
     }
 
     @Override
     protected void onDestroy() {
         Log.d(TAG, "onDestroy");
+        mTimer.cancel();
         mPoseMachine.close();
         super.onDestroy();
     }
@@ -276,10 +293,6 @@ public class MainActivity extends AppCompatActivity implements
                 PAFNET_INPUT_SIZE, PAFNET_INPUT_SIZE, mSensorOrientation, false);
         mCropToFrameTransform = new Matrix();
         mFrameToCropTransform.invert(mCropToFrameTransform);
-
-
-
-        create_instructions();
     }
 
     private void fillBuffer(final Image.Plane[] channels, final byte[][] yuvBuffer) {
