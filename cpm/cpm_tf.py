@@ -115,3 +115,32 @@ def build_paf_net(image, params_dict):
     conv5_5_CPM_L2 = conv2d_no_relu(conv5_4_CPM_L2, params_dict, name='conv5_5_CPM_L2')
 
     return conv5_5_CPM_L1, conv5_5_CPM_L2
+
+
+def build_simple_paf_net(image, params_dict):
+    conv1_1 = conv2dhelper(image, params_dict, 'conv1_1')
+    conv1_2 = conv2dhelper(conv1_1, params_dict, 'conv1_2')
+    pool1_stage1 = maxpool(conv1_2, name='pool1_stage1')
+
+    conv2_1 = conv2dhelper(pool1_stage1, params_dict, 'conv2_1')
+    conv2_2 = conv2dhelper(conv2_1, params_dict, 'conv2_2')
+    pool2_stage1 = maxpool(conv2_2, name='pool2_stage1')
+
+    conv3_1 = conv2dhelper(pool2_stage1, params_dict, name='conv3_1')
+    conv3_2 = conv2dhelper(conv3_1, params_dict, name='conv3_2')
+    conv3_3 = conv2dhelper(conv3_2, params_dict, name='conv3_3')
+    conv3_4 = conv2dhelper(conv3_3, params_dict, name='conv3_4')
+    pool3_stage1 = maxpool(conv3_4, name='pool3_stage1')
+
+    conv4_1 = conv2dhelper(pool3_stage1, params_dict, name='conv4_1')
+    conv4_2 = conv2dhelper(conv4_1, params_dict, name='conv4_2')
+    conv4_3_CPM = conv2dhelper(conv4_2, params_dict, name='conv4_3_CPM')
+    conv4_4_CPM = conv2dhelper(conv4_3_CPM, params_dict, name='conv4_4_CPM')
+
+    conv5_1_CPM_L1 = conv2dhelper(conv4_4_CPM, params_dict, name='conv5_1_CPM_L1')
+    conv5_2_CPM_L1 = conv2dhelper(conv5_1_CPM_L1, params_dict, name='conv5_2_CPM_L1')
+    conv5_3_CPM_L1 = conv2dhelper(conv5_2_CPM_L1, params_dict, name='conv5_3_CPM_L1')
+    conv5_4_CPM_L1 = conv2dhelper(conv5_3_CPM_L1, params_dict, name='conv5_4_CPM_L1')
+    conv5_5_CPM_L1 = conv2d_no_relu(conv5_4_CPM_L1, params_dict, name='conv5_5_CPM_L1')
+
+    return conv5_5_CPM_L1
