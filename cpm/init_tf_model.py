@@ -44,13 +44,3 @@ if __name__ == '__main__':
         tf.train.write_graph(paf_graph.as_graph_def(), paf_net_tf_dir, "paf_net.pb", False)
         tf.train.write_graph(paf_graph.as_graph_def(), paf_net_tf_dir, "paf_net.pbtxt", True)
 
-    paf_graph = tf.Graph()
-    with paf_graph.as_default():
-        image_in = tf.placeholder(tf.float32, [1, PAF_SIZE, PAF_SIZE, 3], name='image')
-        two_branch_output = cpm_tf.build_paf_net(image_in, paf_net_params)
-        heatmap_output = cpm_tf.build_simple_paf_net(image_in, paf_net_params)
-        paf_sess = tf.Session()
-        init = tf.global_variables_initializer()
-        paf_sess.run(init)
-        tf.train.write_graph(paf_graph.as_graph_def(), paf_net_tf_dir, "paf_net_simple.pb", False)
-        tf.train.write_graph(paf_graph.as_graph_def(), paf_net_tf_dir, "paf_net_simple.pbtxt", True)

@@ -60,7 +60,8 @@ public class PoseMachine {
             Log.e(TAG, "Exception:", e);
             throw e;
         }
-        final Operation heatmapOp = pm.mTFinferenceInterface.graphOperation(outputNames[1]);
+        Log.e(TAG, "" + outputNames.length);
+        final Operation heatmapOp = pm.mTFinferenceInterface.graphOperation(pm.mOutputNames[0]);
         final int heatmapOutputTensorSize = pm.getTensorSize(heatmapOp);
         pm.mOutputHeatmap = new float[heatmapOutputTensorSize];
         Log.i(TAG, "Allocated output buffer size for heatmap:" + heatmapOutputTensorSize);
@@ -69,6 +70,7 @@ public class PoseMachine {
         pm.mInputHeight = inputSize;
         pm.mInputIntBuffer = new int[pm.mInputWidth * pm.mInputHeight];
         pm.mInputFloatBuffer = new float[pm.mInputWidth * pm.mInputHeight * 3];
+        // fixme(fswangke): refactor hard-coded 18
         pm.mDetectionScores = new float[18];
         pm.mDetectedPositions = new float[18*2];
 
@@ -106,10 +108,12 @@ public class PoseMachine {
         for(int partId = 0; partId < 18; ++partId) {
             mDetectionScores[partId] = Float.MIN_VALUE;
         }
-        for(int row = 0; row < mInputHeight; ++row) {
-            for(int col = 0; col < mInputWidth; ++col) {
+        // fixme: refactor hard-coded 28
+        // output heatmap tensor size is 1x28x28x19 for 224x224x3 input images
+        for(int row = 0; row < 28; ++row) {
+            for(int col = 0; col < 28; ++col) {
                 for(int part = 0; part < 18; ++part) {
-                    int index = part + (col + row * mInputWidth) * 19;
+                    int index = part + (col + row * 28) * 19;
                     if(mOutputHeatmap[index] > mDetectionScores[part]) {
                         mDetectionScores[part] = mOutputHeatmap[index];
                         mDetectedPositions[part * 2 + 0] = row;

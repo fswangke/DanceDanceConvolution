@@ -102,19 +102,13 @@ def build_paf_net(image, params_dict):
     conv4_3_CPM = conv2dhelper(conv4_2, params_dict, name='conv4_3_CPM')
     conv4_4_CPM = conv2dhelper(conv4_3_CPM, params_dict, name='conv4_4_CPM')
 
-    conv5_1_CPM_L1 = conv2dhelper(conv4_4_CPM, params_dict, name='conv5_1_CPM_L1')
-    conv5_2_CPM_L1 = conv2dhelper(conv5_1_CPM_L1, params_dict, name='conv5_2_CPM_L1')
-    conv5_3_CPM_L1 = conv2dhelper(conv5_2_CPM_L1, params_dict, name='conv5_3_CPM_L1')
-    conv5_4_CPM_L1 = conv2dhelper(conv5_3_CPM_L1, params_dict, name='conv5_4_CPM_L1')
-    conv5_5_CPM_L1 = conv2d_no_relu(conv5_4_CPM_L1, params_dict, name='conv5_5_CPM_L1')
-
     conv5_1_CPM_L2 = conv2dhelper(conv4_4_CPM, params_dict, name='conv5_1_CPM_L2')
     conv5_2_CPM_L2 = conv2dhelper(conv5_1_CPM_L2, params_dict, name='conv5_2_CPM_L2')
     conv5_3_CPM_L2 = conv2dhelper(conv5_2_CPM_L2, params_dict, name='conv5_3_CPM_L2')
     conv5_4_CPM_L2 = conv2dhelper(conv5_3_CPM_L2, params_dict, name='conv5_4_CPM_L2')
     conv5_5_CPM_L2 = conv2d_no_relu(conv5_4_CPM_L2, params_dict, name='conv5_5_CPM_L2')
 
-    return conv5_5_CPM_L1, conv5_5_CPM_L2
+    return conv5_5_CPM_L2
 
 
 def build_simple_paf_net(image, params_dict):
@@ -137,10 +131,10 @@ def build_simple_paf_net(image, params_dict):
     conv4_3_CPM = conv2dhelper(conv4_2, params_dict, name='conv4_3_CPM')
     conv4_4_CPM = conv2dhelper(conv4_3_CPM, params_dict, name='conv4_4_CPM')
 
-    conv5_1_CPM_L1 = conv2dhelper(conv4_4_CPM, params_dict, name='conv5_1_CPM_L1')
-    conv5_2_CPM_L1 = conv2dhelper(conv5_1_CPM_L1, params_dict, name='conv5_2_CPM_L1')
-    conv5_3_CPM_L1 = conv2dhelper(conv5_2_CPM_L1, params_dict, name='conv5_3_CPM_L1')
-    conv5_4_CPM_L1 = conv2dhelper(conv5_3_CPM_L1, params_dict, name='conv5_4_CPM_L1')
-    conv5_5_CPM_L1 = conv2d_no_relu(conv5_4_CPM_L1, params_dict, name='conv5_5_CPM_L1')
+    conv5_1_CPM_L2 = conv2dhelper(conv4_4_CPM, params_dict, name='conv5_1_CPM_L2')
+    conv5_2_CPM_L2 = conv2dhelper(conv5_1_CPM_L2, params_dict, name='conv5_2_CPM_L2')
+    conv5_3_CPM_L2 = conv2dhelper(conv5_2_CPM_L2, params_dict, name='conv5_3_CPM_L2')
+    conv5_4_CPM_L2 = conv2dhelper(conv5_3_CPM_L2, params_dict, name='conv5_4_CPM_L2')
+    conv5_5_CPM_L2 = conv2d_no_relu(conv5_4_CPM_L2, params_dict, name='conv5_5_CPM_L2')
 
-    return conv5_5_CPM_L1
+    return conv5_5_CPM_L2
