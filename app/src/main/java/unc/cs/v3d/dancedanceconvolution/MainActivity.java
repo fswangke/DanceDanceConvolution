@@ -32,10 +32,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.nio.ByteBuffer;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Date;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.Vector;
@@ -94,14 +92,18 @@ public class MainActivity extends AppCompatActivity implements
     static final private String[] PAFNET_OUTPUT_NODE_NAMES = new String[]{"conv5_5_CPM_L2"};
     static final private int PAFNET_INPUT_SIZE = 224;
 
-    static final private int NUM_INSTRUCTIONS = 2;
+    static final private int NUM_INSTRUCTIONS = 5;
     private Button[] buttons_instruction_correct;
     private Button[] buttons_instruction_infer;
 
     private MediaPlayer mMediaPlayer = null;
+    private final int timeStep = 1000; //ms
+    private final int NUM_INSTRUCTION_TYPE = 4;
 
-
-    Timer mTimer;
+    private Timer mTimer;
+    private Random random = new Random();
+    private int[] instructionTypes = null;
+    private int steps = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,23 +127,33 @@ public class MainActivity extends AppCompatActivity implements
     public void startGame(View view) {
         create_instructions();
 
+        // set up the timer
         if (mTimer == null) {
             mTimer = new Timer();
             setTimerTask();
         }
 
+        // set up the music
         if(mMediaPlayer == null) {
             mMediaPlayer = MediaPlayer.create(this, R.raw.carolina);
             mMediaPlayer.setLooping(true);
+            // TODO: deal with the case that the song is looping
             mMediaPlayer.start();
+        }
+        int duration = mMediaPlayer.getDuration();
+        Log.v("MUSIC", "duration:" + duration);
+
+        steps = duration / timeStep;
+        instructionTypes = new int[steps];
+        for (int i = 0; i < steps; ++i){
+            instructionTypes[i] = random.nextInt(NUM_INSTRUCTION_TYPE);
         }
     }
 
     private void setTimerTask() {
-        mTimer.scheduleAtFixedRate(new MusicTask(), 1000,1000);
+        mTimer.scheduleAtFixedRate(new MusicTask(), timeStep, timeStep);
     }
 
-    private int cnt = 0;
     private class MusicTask extends TimerTask {
         @Override
         public void run() {
@@ -152,6 +164,7 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
+    private int step = -1;
     private Handler doActionHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -161,8 +174,15 @@ public class MainActivity extends AppCompatActivity implements
                 case 1:
                     // do some action
                     TextView tv = (TextView) findViewById(R.id.hello);
-                    ++cnt;
-                    tv.setText(""+cnt);
+                    ++step;
+                    tv.setText(""+step);
+
+                    for (int i = 0; i < NUM_INSTRUCTIONS; ++i){
+                        if(i + step >= steps)
+                            buttons_instruction_correct[i].setText("");
+                        else
+                            buttons_instruction_correct[i].setText("" + (char) ('A' + instructionTypes[i+step]));
+                    }
 
                     break;
                 default:
@@ -219,6 +239,7 @@ public class MainActivity extends AppCompatActivity implements
         stopTFInferenceThread();
         if (mTimer != null) {
             mTimer.cancel();
+            mTimer = null;
         }
         super.onPause();
     }
@@ -229,6 +250,7 @@ public class MainActivity extends AppCompatActivity implements
         Log.d(TAG, "onStop");
         if (mTimer != null) {
             mTimer.cancel();
+            mTimer = null;
         }
         super.onStop();
         if (mMediaPlayer != null) {
@@ -242,6 +264,7 @@ public class MainActivity extends AppCompatActivity implements
         Log.d(TAG, "onDestroy");
         if (mTimer != null) {
             mTimer.cancel();
+            mTimer = null;
         }
         if (mPoseMachine != null) {
             mPoseMachine.close();
