@@ -12,6 +12,7 @@ import android.media.ImageReader;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Message;
 import android.os.SystemClock;
 import android.os.Trace;
 import android.support.annotation.NonNull;
@@ -30,8 +31,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.nio.ByteBuffer;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Timer;
+import java.util.TimerTask;
 import java.util.Vector;
 
 // Convolutional Pose Machines (CPM) have two stages: 1) PersonNetwork 2) PoseNet
@@ -117,9 +122,43 @@ public class MainActivity extends AppCompatActivity implements
     public void startGame(View view) {
         create_instructions();
 
-        if (mTimer != null) mTimer = new Timer();
-        //setTimerTask();
+        if (mTimer == null) mTimer = new Timer();
+        setTimerTask();
     }
+
+    private void setTimerTask() {
+        mTimer.scheduleAtFixedRate(new MusicTask(), 1000,1000);
+    }
+
+    private int cnt = 0;
+    private class MusicTask extends TimerTask {
+        @Override
+        public void run() {
+            //update TextView
+            Message message = new Message();
+            message.what = 1;
+            doActionHandler.sendMessage(message);
+        }
+    }
+
+    private Handler doActionHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            int msgId = msg.what;
+            switch (msgId) {
+                case 1:
+                    // do some action
+                    TextView tv = (TextView) findViewById(R.id.hello);
+                    ++cnt;
+                    tv.setText(""+cnt);
+
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
 
     protected void create_instructions() {
         if (buttons_instruction_correct != null && buttons_instruction_infer != null) return;
