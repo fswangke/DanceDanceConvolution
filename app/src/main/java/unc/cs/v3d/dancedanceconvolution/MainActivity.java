@@ -9,6 +9,7 @@ import android.graphics.Matrix;
 import android.graphics.Typeface;
 import android.media.Image;
 import android.media.ImageReader;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -97,6 +98,8 @@ public class MainActivity extends AppCompatActivity implements
     private Button[] buttons_instruction_correct;
     private Button[] buttons_instruction_infer;
 
+    private MediaPlayer mMediaPlayer = null;
+
 
     Timer mTimer;
 
@@ -122,8 +125,16 @@ public class MainActivity extends AppCompatActivity implements
     public void startGame(View view) {
         create_instructions();
 
-        if (mTimer == null) mTimer = new Timer();
-        setTimerTask();
+        if (mTimer == null) {
+            mTimer = new Timer();
+            setTimerTask();
+        }
+
+        if(mMediaPlayer == null) {
+            mMediaPlayer = MediaPlayer.create(this, R.raw.carolina);
+            mMediaPlayer.setLooping(true);
+            mMediaPlayer.start();
+        }
     }
 
     private void setTimerTask() {
@@ -214,11 +225,16 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     protected void onStop() {
+        //TODO: check timer and the media_player whether works when stop and resume
         Log.d(TAG, "onStop");
         if (mTimer != null) {
             mTimer.cancel();
         }
         super.onStop();
+        if (mMediaPlayer != null) {
+            mMediaPlayer.release();
+            mMediaPlayer = null;
+        }
     }
 
     @Override
