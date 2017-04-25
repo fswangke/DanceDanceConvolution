@@ -214,9 +214,7 @@ public class MainActivity extends AppCompatActivity implements
     protected void create_instructions() {
         if (buttons_instruction_correct != null && buttons_instruction_infer != null) return;
         LinearLayout instructions_correct = (LinearLayout) findViewById(R.id.instructions_correct);
-        LinearLayout instructions_infer = (LinearLayout) findViewById(R.id.instructions_infer);
         buttons_instruction_correct = new Button[NUM_INSTRUCTIONS];
-        buttons_instruction_infer = new Button[NUM_INSTRUCTIONS];
         for (int i = 0; i < NUM_INSTRUCTIONS; ++i) {
             buttons_instruction_correct[i] = new Button(this);
             buttons_instruction_correct[i].setTag(i);
@@ -227,16 +225,23 @@ public class MainActivity extends AppCompatActivity implements
                             (int) getResources().getDimension(R.dimen.instruction_width),
                             (int) getResources().getDimension(R.dimen.instruction_height)));
 
-            buttons_instruction_infer[i] = new Button(this);
-            buttons_instruction_infer[i].setTag(i);
-            buttons_instruction_infer[i].setTextColor(getResources().getColor(R.color.colorAccent));
-            buttons_instruction_infer[i].setText(getInstuctionStringByType(i));
-            instructions_infer.addView(buttons_instruction_infer[i],
-                    new LinearLayout.LayoutParams(
-                            (int) getResources().getDimension(R.dimen.instruction_width),
-                            (int) getResources().getDimension(R.dimen.instruction_height)));
         }
 
+        // only need one for inferring.........
+        LinearLayout instructions_infer = (LinearLayout) findViewById(R.id.instructions_infer);
+        buttons_instruction_infer = new Button[1];
+        buttons_instruction_infer[0] = new Button(this);
+        buttons_instruction_infer[0].setTag(0);
+        buttons_instruction_infer[0].setTextColor(getResources().getColor(R.color.colorAccent));
+        buttons_instruction_infer[0].setText(getInstuctionStringByType(0));
+        instructions_infer.addView(buttons_instruction_infer[0],
+                new LinearLayout.LayoutParams(
+                        (int) getResources().getDimension(R.dimen.instruction_width),
+                        (int) getResources().getDimension(R.dimen.instruction_height)));
+
+        // make the first one bigger
+        buttons_instruction_correct[0].setTextSize(getResources().getDimension(R.dimen.bigTextSize));
+        buttons_instruction_infer[0].setTextSize(getResources().getDimension(R.dimen.bigTextSize));
     }
 
     @Override
@@ -341,6 +346,14 @@ public class MainActivity extends AppCompatActivity implements
                 if (mShowTFRuntimeStats) {
                     mOverlayView.postInvalidate();
                 }
+
+                // get pose
+
+                float[] detectedPose = mPoseMachine.getDetectedPositions();
+                //    int r = (int)detectedPose[i*2];
+                //    int c = (int)detectedPose[i*2+1];
+
+
             }
         });
         Trace.endSection();

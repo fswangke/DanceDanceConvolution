@@ -20,12 +20,14 @@
             android:layout_height="wrap_content"
             android:text="Start"
             android:onClick="startGame"/>
+
         <TextView
             android:id="@+id/hello"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Hello"
-            android:textColor="@color/colorAccent"/>
+            android:textColor="@color/colorAccent"
+            android:textSize="`" />
 
         <ImageView
             android:id="@+id/crop_image"
