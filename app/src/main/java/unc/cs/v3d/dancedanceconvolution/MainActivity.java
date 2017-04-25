@@ -299,7 +299,7 @@ public class MainActivity extends AppCompatActivity implements
 
 
     @Override
-    public void onImageAvailable(ImageReader reader) {
+    public void onImageAvailable(final ImageReader reader) {
         Image image = null;
         image = reader.acquireLatestImage();
         if (image == null) {
@@ -346,19 +346,50 @@ public class MainActivity extends AppCompatActivity implements
                 if (mShowTFRuntimeStats) {
                     mOverlayView.postInvalidate();
                 }
-
-                // get pose
-
-                float[] detectedPose = mPoseMachine.getDetectedPositions();
-                //    int r = (int)detectedPose[i*2];
-                //    int c = (int)detectedPose[i*2+1];
-
-
+                // TODO: draft, need to debug
+                int type = getInferPoseType();
+                if(buttons_instruction_infer != null)
+                    buttons_instruction_infer[0].setText(getInstuctionStringByType(type));
             }
         });
         Trace.endSection();
     }
 
+
+    public int getInferPoseType(){
+        // get pose
+        float[] detectedPose = mPoseMachine.getDetectedPositions();
+        // {0,  "Nose"}, {1,  "Neck"},
+        // {2,  "RShoulder"}, {3,  "RElbow"}, {4,  "RWrist"},
+        // {5,  "LShoulder"}, {6,  "LElbow"}, {7,  "LWrist"},
+        // {8,  "RHip"}, {9,  "RKnee"}, {10, "RAnkle"},
+        // {11, "LHip"}, {12, "LKnee"}, {13, "LAnkle"},
+        // {14, "REye"}, {15, "LEye"}, {16, "REar"}, {17, "LEar"}
+
+        // simple way to decide the type of pose
+        float[] rWrist = {detectedPose[4*2], detectedPose[4*2+1]};
+        float[] lWrist = {detectedPose[7*2], detectedPose[7*2+1]};
+        float[] nose   = {detectedPose[0*2], detectedPose[0*2+1]};
+        Log.v("POSE", "rWrist: " + Arrays.toString(rWrist));
+        Log.v("POSE", "lWrist: " + Arrays.toString(lWrist));
+        Log.v("POSE", "nose: " + Arrays.toString(nose));
+
+        // int r = (int)detectedPose[i*2];
+        // int c = (int)detectedPose[i*2+1];
+        // [row, col]
+        if((rWrist[1] > nose[1]) != (lWrist[1] > nose[1])){
+            // wrists in the different sides
+            if(rWrist[0] < nose[0] && lWrist[0] < nose[0]){
+                // wrists above the nose
+                return 0; // up
+            } else return 1; // down
+        } else if (rWrist[1] > nose[1]){ // same side
+            return 3; // right
+        } else { //rWrist[1] > nose[1] same side
+            return 2; // left
+        }
+
+    }
 
     @Override
     public void onPreviewSizeChosen(Size size, int rotation) {
