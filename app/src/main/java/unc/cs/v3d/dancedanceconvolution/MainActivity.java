@@ -108,6 +108,7 @@ public class MainActivity extends AppCompatActivity implements
     private Random random = new Random();
     private int[] instructionTypes = null;
     private int steps = -1;
+    private int step = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -138,17 +139,18 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         // set up the music
-        if(mMediaPlayer == null) {
+        if(mMediaPlayer != null) mMediaPlayer.release();
             mMediaPlayer = MediaPlayer.create(this, R.raw.carolina);
             mMediaPlayer.setLooping(true);
             // TODO: deal with the case that the song is looping
             mMediaPlayer.start();
-        }
+
         int duration = mMediaPlayer.getDuration();
         Log.v("MUSIC", "duration:" + duration);
 
         steps = duration / timeStep;
         instructionTypes = new int[steps];
+        step = -1;
         for (int i = 0; i < steps; ++i){
             instructionTypes[i] = random.nextInt(NUM_INSTRUCTION_TYPE);
         }
@@ -168,7 +170,6 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    private int step = -1;
     private Handler doActionHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
