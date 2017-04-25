@@ -170,6 +170,21 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
+    private String getInstuctionStringByType(int type){
+        switch (type){
+            case 0:
+                return getResources().getString(R.string.up_arrow);
+            case 1:
+                return getResources().getString(R.string.down_arrow);
+            case 2:
+                return getResources().getString(R.string.left_arrow);
+            case 3:
+                return getResources().getString(R.string.right_arrow);
+            default:
+                return "";
+        }
+    }
+
     private Handler doActionHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -186,7 +201,7 @@ public class MainActivity extends AppCompatActivity implements
                         if(i + step >= steps)
                             buttons_instruction_correct[i].setText("");
                         else
-                            buttons_instruction_correct[i].setText("" + (char) ('A' + instructionTypes[i+step]));
+                            buttons_instruction_correct[i].setText(getInstuctionStringByType(instructionTypes[i+step]));
                     }
 
                     break;
@@ -206,7 +221,7 @@ public class MainActivity extends AppCompatActivity implements
             buttons_instruction_correct[i] = new Button(this);
             buttons_instruction_correct[i].setTag(i);
             buttons_instruction_correct[i].setTextColor(getResources().getColor(R.color.colorAccent));
-            buttons_instruction_correct[i].setText("" + (char) ('A' + i));
+            buttons_instruction_correct[i].setText(getInstuctionStringByType(i));
             instructions_correct.addView(buttons_instruction_correct[i],
                     new LinearLayout.LayoutParams(
                             (int) getResources().getDimension(R.dimen.instruction_width),
@@ -215,7 +230,7 @@ public class MainActivity extends AppCompatActivity implements
             buttons_instruction_infer[i] = new Button(this);
             buttons_instruction_infer[i].setTag(i);
             buttons_instruction_infer[i].setTextColor(getResources().getColor(R.color.colorAccent));
-            buttons_instruction_infer[i].setText("" + (char) ('S' + i));
+            buttons_instruction_infer[i].setText(getInstuctionStringByType(i));
             instructions_infer.addView(buttons_instruction_infer[i],
                     new LinearLayout.LayoutParams(
                             (int) getResources().getDimension(R.dimen.instruction_width),
@@ -369,29 +384,20 @@ public class MainActivity extends AppCompatActivity implements
 
 
                 ImageView mImageView = (ImageView) findViewById(R.id.crop_image);
-                // mImageView.setImageBitmap(mCroppedBitmap);
-                // Bitmap poseBitmap = Bitmap.createBitmap(PAFNET_INPUT_SIZE, PAFNET_INPUT_SIZE, Bitmap.Config.ARGB_8888);
-                Bitmap poseBitmap = Bitmap.createScaledBitmap(mCroppedBitmap, PAFNET_OUTPUT_SIZE, PAFNET_OUTPUT_SIZE, false);
 
+                // draw blue pixels at the pose joints
+                Bitmap poseBitmap = Bitmap.createScaledBitmap(mCroppedBitmap, PAFNET_OUTPUT_SIZE, PAFNET_OUTPUT_SIZE, false);
                 int[] pixels = new int[poseBitmap.getHeight()*poseBitmap.getWidth()];
                 poseBitmap.getPixels(pixels, 0, poseBitmap.getWidth(), 0, 0, poseBitmap.getWidth(), poseBitmap.getHeight());
-
                 for (int i = 0; i < detectedPose.length/2; ++i){
                     int r = (int)detectedPose[i*2];
                     int c = (int)detectedPose[i*2+1];
                     pixels[r*PAFNET_OUTPUT_SIZE+c] = Color.BLUE;
                 }
-                /*
-                for (int i=0; i<poseBitmap.getWidth()*5; i++)
-                    pixels[i] = Color.BLUE;
-                */
                 poseBitmap.setPixels(pixels, 0, poseBitmap.getWidth(), 0, 0, poseBitmap.getWidth(), poseBitmap.getHeight());
-
                 poseBitmap = Bitmap.createScaledBitmap(poseBitmap, PAFNET_INPUT_SIZE, PAFNET_INPUT_SIZE, false);
 
                 mImageView.setImageBitmap(poseBitmap);
-
-
 
                 mBorderedText.drawLiness(canvas, 10, canvas.getHeight() - 10, lines);
             }
