@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.media.Image;
 import android.media.ImageReader;
@@ -195,15 +196,19 @@ public class MainActivity extends AppCompatActivity implements
                     // do some action
                     TextView tv = (TextView) findViewById(R.id.hello);
                     ++step;
-                    tv.setText(""+step);
+                    tv.setText(""+rrstep);
 
                     for (int i = 0; i < NUM_INSTRUCTIONS; ++i){
-                        if(i + step >= steps)
+                        if(i + step >= steps) {
                             buttons_instruction_correct[i].setText("");
-                        else
-                            buttons_instruction_correct[i].setText(getInstuctionStringByType(instructionTypes[i+step]));
+                        } else {
+                            buttons_instruction_correct[i].setText(getInstuctionStringByType(instructionTypes[i + step]));
+                        }
                     }
-
+                    break;
+                case 2:
+                    int type = msg.arg1;
+                    buttons_instruction_infer[0].setText(getInstuctionStringByType(type));
                     break;
                 default:
                     break;
@@ -240,8 +245,8 @@ public class MainActivity extends AppCompatActivity implements
                         (int) getResources().getDimension(R.dimen.instruction_height)));
 
         // make the first one bigger
-        buttons_instruction_correct[0].setTextSize(getResources().getDimension(R.dimen.bigTextSize));
-        buttons_instruction_infer[0].setTextSize(getResources().getDimension(R.dimen.bigTextSize));
+        // buttons_instruction_correct[0].setTextSize(getResources().getDimension(R.dimen.bigTextSize));
+        // buttons_instruction_infer[0].setTextSize(getResources().getDimension(R.dimen.bigTextSize));
     }
 
     @Override
@@ -348,8 +353,18 @@ public class MainActivity extends AppCompatActivity implements
                 }
                 // TODO: draft, need to debug
                 int type = getInferPoseType();
-                if(buttons_instruction_infer != null)
-                    buttons_instruction_infer[0].setText(getInstuctionStringByType(type));
+                if(buttons_instruction_infer != null) {
+                    if (buttons_instruction_infer[0] != null) {
+                        Log.v("POSETYPE", "POSE: " + getInstuctionStringByType(type));
+                        // buttons_instruction_infer[0].setText(getInstuctionStringByType(type));
+
+                        Message message = new Message();
+                        message.what = 2;
+                        message.arg1 = type;
+                        doActionHandler.sendMessage(message);
+
+                    }
+                }
             }
         });
         Trace.endSection();
@@ -440,6 +455,18 @@ public class MainActivity extends AppCompatActivity implements
                 }
                 poseBitmap.setPixels(pixels, 0, poseBitmap.getWidth(), 0, 0, poseBitmap.getWidth(), poseBitmap.getHeight());
                 poseBitmap = Bitmap.createScaledBitmap(poseBitmap, PAFNET_INPUT_SIZE, PAFNET_INPUT_SIZE, false);
+
+                //
+                /* try to draw a line
+                Canvas c = new Canvas(poseBitmap);
+                poseBitmap.draw(c);
+
+                Paint p = new Paint();
+                p.setColor(Color.BLUE);
+                c.drawLine(x, y, xend, yend, p);
+                mImagenCampo.setImageBitmap(bmp);
+                */
+                //
 
                 mImageView.setImageBitmap(poseBitmap);
 
