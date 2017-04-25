@@ -90,7 +90,7 @@ public class MainActivity extends AppCompatActivity implements
     private boolean mShowTFRuntimeStats = false;
     private long mLastInferenceTime;
     private static final float TEXT_SIZE_DIP = 10;
-    private static final String PAFNET_MODEL_FILE = "file:///android_asset/paf_net_simple_eightbit.pb";
+    private static final String PAFNET_MODEL_FILE = "file:///android_asset/paf_net.pb";
     static final private String PAFNET_INPUT_NODE_NAME = "image";
     static final private String[] PAFNET_OUTPUT_NODE_NAMES = new String[]{"conv5_5_CPM_L2"};
     static final private int PAFNET_INPUT_SIZE = 224;
@@ -376,8 +376,8 @@ public class MainActivity extends AppCompatActivity implements
                 poseBitmap.getPixels(pixels, 0, poseBitmap.getWidth(), 0, 0, poseBitmap.getWidth(), poseBitmap.getHeight());
 
                 for (int i = 0; i < detectedPose.length/2; ++i){
-                    int c = (int)detectedPose[i*2];
-                    int r = (int)detectedPose[i*2+1];
+                    int r = (int)detectedPose[i*2];
+                    int c = (int)detectedPose[i*2+1];
                     pixels[r*PAFNET_OUTPUT_SIZE+c] = Color.BLUE;
                 }
                 /*
