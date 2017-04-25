@@ -5,6 +5,7 @@ import android.app.Fragment;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Typeface;
 import android.media.Image;
@@ -14,6 +15,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
+import android.os.Parcelable;
 import android.os.SystemClock;
 import android.os.Trace;
 import android.support.annotation.NonNull;
@@ -27,6 +29,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -91,6 +94,7 @@ public class MainActivity extends AppCompatActivity implements
     static final private String PAFNET_INPUT_NODE_NAME = "image";
     static final private String[] PAFNET_OUTPUT_NODE_NAMES = new String[]{"conv5_5_CPM_L2"};
     static final private int PAFNET_INPUT_SIZE = 224;
+    static final private int PAFNET_OUTPUT_SIZE = 28;
 
     static final private int NUM_INSTRUCTIONS = 5;
     private Button[] buttons_instruction_correct;
@@ -358,6 +362,34 @@ public class MainActivity extends AppCompatActivity implements
                 lines.add("View:  " + canvas.getWidth() + "x" + canvas.getHeight());
                 lines.add("Rotation: " + mSensorOrientation);
                 lines.add("Inference time: " + mLastInferenceTime + "ms");
+                float[] detectedPose = mPoseMachine.getDetectedPositions();
+                lines.add(Arrays.toString(detectedPose));
+                Log.v("POSE", Arrays.toString(detectedPose));
+
+
+                ImageView mImageView = (ImageView) findViewById(R.id.crop_image);
+                // mImageView.setImageBitmap(mCroppedBitmap);
+                // Bitmap poseBitmap = Bitmap.createBitmap(PAFNET_INPUT_SIZE, PAFNET_INPUT_SIZE, Bitmap.Config.ARGB_8888);
+                Bitmap poseBitmap = Bitmap.createScaledBitmap(mCroppedBitmap, PAFNET_OUTPUT_SIZE, PAFNET_OUTPUT_SIZE, false);
+
+                int[] pixels = new int[poseBitmap.getHeight()*poseBitmap.getWidth()];
+                poseBitmap.getPixels(pixels, 0, poseBitmap.getWidth(), 0, 0, poseBitmap.getWidth(), poseBitmap.getHeight());
+
+                for (int i = 0; i < detectedPose.length/2; ++i){
+                    int c = (int)detectedPose[i*2];
+                    int r = (int)detectedPose[i*2+1];
+                    pixels[r*PAFNET_OUTPUT_SIZE+c] = Color.BLUE;
+                }
+                /*
+                for (int i=0; i<poseBitmap.getWidth()*5; i++)
+                    pixels[i] = Color.BLUE;
+                */
+                poseBitmap.setPixels(pixels, 0, poseBitmap.getWidth(), 0, 0, poseBitmap.getWidth(), poseBitmap.getHeight());
+
+                poseBitmap = Bitmap.createScaledBitmap(poseBitmap, PAFNET_INPUT_SIZE, PAFNET_INPUT_SIZE, false);
+
+                mImageView.setImageBitmap(poseBitmap);
+
 
 
                 mBorderedText.drawLiness(canvas, 10, canvas.getHeight() - 10, lines);
