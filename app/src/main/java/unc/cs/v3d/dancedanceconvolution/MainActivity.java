@@ -193,16 +193,21 @@ public class MainActivity extends AppCompatActivity implements
             int msgId = msg.what;
             switch (msgId) {
                 case 1:
-                    // do some action
-                    TextView tv = (TextView) findViewById(R.id.hello);
-                    ++step;
-                    tv.setText(""+rrstep);
 
-                    for (int i = 0; i < NUM_INSTRUCTIONS; ++i){
-                        if(i + step >= steps) {
-                            buttons_instruction_correct[i].setText("");
-                        } else {
-                            buttons_instruction_correct[i].setText(getInstuctionStringByType(instructionTypes[i + step]));
+                    ++step;
+                    if(step >= steps) {
+                        mTimer.cancel();
+                        
+                    }else {
+                        TextView tv = (TextView) findViewById(R.id.hello);
+                        tv.setText("" + step);
+
+                        for (int i = 0; i < NUM_INSTRUCTIONS; ++i) {
+                            if (i + step >= steps) {
+                                buttons_instruction_correct[i].setText("");
+                            } else {
+                                buttons_instruction_correct[i].setText(getInstuctionStringByType(instructionTypes[i + step]));
+                            }
                         }
                     }
                     break;
@@ -224,7 +229,7 @@ public class MainActivity extends AppCompatActivity implements
             buttons_instruction_correct[i] = new Button(this);
             buttons_instruction_correct[i].setTag(i);
             buttons_instruction_correct[i].setTextColor(getResources().getColor(R.color.colorAccent));
-            buttons_instruction_correct[i].setText(getInstuctionStringByType(i));
+            buttons_instruction_correct[i].setText("");
             instructions_correct.addView(buttons_instruction_correct[i],
                     new LinearLayout.LayoutParams(
                             (int) getResources().getDimension(R.dimen.instruction_width),
@@ -238,7 +243,7 @@ public class MainActivity extends AppCompatActivity implements
         buttons_instruction_infer[0] = new Button(this);
         buttons_instruction_infer[0].setTag(0);
         buttons_instruction_infer[0].setTextColor(getResources().getColor(R.color.colorAccent));
-        buttons_instruction_infer[0].setText(getInstuctionStringByType(0));
+        buttons_instruction_infer[0].setText("");
         instructions_infer.addView(buttons_instruction_infer[0],
                 new LinearLayout.LayoutParams(
                         (int) getResources().getDimension(R.dimen.instruction_width),
