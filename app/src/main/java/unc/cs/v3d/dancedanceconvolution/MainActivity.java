@@ -35,6 +35,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.w3c.dom.Text;
+
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Random;
@@ -110,6 +112,8 @@ public class MainActivity extends AppCompatActivity implements
     private int[] instructionTypes = null;
     private int steps = -1;
     private int step = -1;
+    private int num_infer = -1;
+    private int num_infer_correct = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -152,6 +156,8 @@ public class MainActivity extends AppCompatActivity implements
         steps = duration / timeStep;
         instructionTypes = new int[steps];
         step = -1;
+        num_infer = 0;
+        num_infer_correct = 0;
         for (int i = 0; i < steps; ++i){
             instructionTypes[i] = random.nextInt(NUM_INSTRUCTION_TYPE);
         }
@@ -197,7 +203,9 @@ public class MainActivity extends AppCompatActivity implements
                     ++step;
                     if(step >= steps) {
                         mTimer.cancel();
-                        
+                        mMediaPlayer.release();
+                        TextView score = (TextView) findViewById(R.id.score);
+                        score.setText("Score: "+ (int)(num_infer_correct / num_infer) + "/100");
                     }else {
                         TextView tv = (TextView) findViewById(R.id.hello);
                         tv.setText("" + step);
@@ -214,6 +222,10 @@ public class MainActivity extends AppCompatActivity implements
                 case 2:
                     int type = msg.arg1;
                     buttons_instruction_infer[0].setText(getInstuctionStringByType(type));
+
+                    ++num_infer;
+                    if(type == instructionTypes[step]) ++num_infer_correct;
+
                     break;
                 default:
                     break;
