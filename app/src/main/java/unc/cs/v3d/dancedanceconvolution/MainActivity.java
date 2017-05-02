@@ -207,8 +207,8 @@ public class MainActivity extends AppCompatActivity implements
                         TextView score = (TextView) findViewById(R.id.score);
                         score.setText("Score: "+ (int)(num_infer_correct / num_infer) + "/100");
                     }else {
-                        TextView tv = (TextView) findViewById(R.id.hello);
-                        tv.setText("" + step);
+                        // TextView tv = (TextView) findViewById(R.id.hello);
+                        // tv.setText("" + step);
 
                         for (int i = 0; i < NUM_INSTRUCTIONS; ++i) {
                             if (i + step >= steps) {
