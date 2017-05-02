@@ -418,9 +418,9 @@ public class MainActivity extends AppCompatActivity implements
                 return 0; // up
             } else return 1; // down
         } else if (rWrist[1] > nose[1]){ // same side
-            return 3; // right
+            return 2; // right
         } else { //rWrist[1] > nose[1] same side
-            return 2; // left
+            return 3; // left
         }
 
     }

@@ -404,8 +404,8 @@ public class CameraFragment extends Fragment {
             for (final String cameraId : manager.getCameraIdList()) {
                 final CameraCharacteristics cc = manager.getCameraCharacteristics(cameraId);
                 final Integer facing = cc.get(CameraCharacteristics.LENS_FACING);
-                if (facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT) {
-                    Log.i(TAG, "Skipping facing camera");
+                if (facing != null && facing == CameraCharacteristics.LENS_FACING_BACK) {
+                    Log.i(TAG, "Skipping back facing camera");
                     continue;
                 }
 
