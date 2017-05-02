@@ -164,7 +164,7 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void setTimerTask() {
-        mTimer.scheduleAtFixedRate(new MusicTask(), timeStep, timeStep);
+        mTimer.scheduleAtFixedRate(new MusicTask(), 0, timeStep);
     }
 
     private class MusicTask extends TimerTask {
@@ -223,8 +223,10 @@ public class MainActivity extends AppCompatActivity implements
                     int type = msg.arg1;
                     buttons_instruction_infer[0].setText(getInstuctionStringByType(type));
 
-                    ++num_infer;
-                    if(type == instructionTypes[step]) ++num_infer_correct;
+                    if(step < steps && step >= 0) {
+                        ++num_infer;
+                        if (type == instructionTypes[step]) ++num_infer_correct;
+                    }
 
                     break;
                 default:
