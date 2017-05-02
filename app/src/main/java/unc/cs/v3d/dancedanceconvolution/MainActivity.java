@@ -104,7 +104,7 @@ public class MainActivity extends AppCompatActivity implements
     private Button[] buttons_instruction_infer;
 
     private MediaPlayer mMediaPlayer = null;
-    private final int timeStep = 1000; //ms
+    private final int timeStep = 3000; //ms
     private final int NUM_INSTRUCTION_TYPE = 4;
 
     private Timer mTimer;
